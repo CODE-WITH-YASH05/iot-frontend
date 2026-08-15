@@ -1,0 +1,33 @@
+# Dependency folders (Faltu heavy files se bachne ke liye)
+node_modules/
+jspm_packages/
+web_fest/
+
+# Production/Build folders (Auto-generated code)
+dist/
+build/
+out/
+
+# Secret/Environment files (Security aur API keys ke liye)
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+.env.*.local
+
+# Logs (Error tracking files)
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Editor specific files (Aapke system ya VS Code ki settings)
+.vscode/
+.idea/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.swp
+.DS_Store
