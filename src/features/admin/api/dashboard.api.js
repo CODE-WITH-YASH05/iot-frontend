@@ -1,21 +1,39 @@
-import apiClient from "../../../api/client";
+import adminClient from "../../../api/admin-client";
 
-const ADMIN_BASE = "/api/v1/admin";
+const DASHBOARD_BASE = "/api/v1/admin/dashboard";
 
 export const dashboardApi = {
+  // Get dashboard stats
   getStats() {
-    return apiClient.get(`${ADMIN_BASE}/dashboard/stats/`);
+    return adminClient.get(`${DASHBOARD_BASE}/stats/`);
   },
 
-  getRecentOrders() {
-    return apiClient.get(`${ADMIN_BASE}/dashboard/recent-orders/`);
+  // Get recent orders
+  getRecentOrders(limit = 10) {
+    return adminClient.get(`${DASHBOARD_BASE}/recent-orders/`, {
+      params: { limit },
+    });
   },
 
+  // Get revenue data for charts
   getRevenueData() {
-    return apiClient.get(`${ADMIN_BASE}/dashboard/revenue/`);
+    return adminClient.get(`${DASHBOARD_BASE}/revenue/`);
   },
 
-  getTopProducts() {
-    return apiClient.get(`${ADMIN_BASE}/dashboard/top-products/`);
+  // Get top products
+  getTopProducts(limit = 5) {
+    return adminClient.get(`${DASHBOARD_BASE}/top-products/`, {
+      params: { limit },
+    });
+  },
+
+  // Get order status distribution
+  getOrderStatus() {
+    return adminClient.get(`${DASHBOARD_BASE}/order-status/`);
+  },
+
+  // Get category distribution
+  getCategoryDistribution() {
+    return adminClient.get(`${DASHBOARD_BASE}/category-distribution/`);
   },
 };

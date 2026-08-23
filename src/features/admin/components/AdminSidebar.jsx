@@ -8,11 +8,13 @@ const menuItems = [
   { name: "Products", path: "/admin/products", icon: "inventory_2" },
   { name: "Categories", path: "/admin/categories", icon: "category" },
   { name: "Brands", path: "/admin/brands", icon: "storefront" },
-  { name: "Orders", path: "/admin/orders", icon: "shopping_bag" },
-  { name: "Customers", path: "/admin/customers", icon: "people" },
+  { name: "Orders", path: "/admin/AdminOrders", icon: "shopping_bag" },
+  { name: "Customers", path: "/admin/AdminUsers", icon: "people" },
   { name: "Inventory", path: "/admin/inventory", icon: "warehouse" },
   { name: "Reviews", path: "/admin/reviews", icon: "reviews" },
   { name: "Settings", path: "/admin/settings", icon: "settings" },
+  { name: "Wishlist", path: "/admin/wishlist", icon: "favorite" },
+  { name: "Cart", path: "/admin/AdminCart", icon: "shopping_cart" },
 ];
 
 export default function AdminSidebar({ isOpen, setIsOpen }) {

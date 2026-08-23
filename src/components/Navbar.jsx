@@ -1,7 +1,8 @@
 import React, { useState, useEffect, useMemo } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
-import { useCart } from "../store/useStore";
+import { useCart } from "../features/cart/hooks/useCart";
+import { tokenManager } from "../api/token-manager";
 import { useProducts } from "../features/products/hooks/useProducts";
 import { mapProduct } from "../features/products/utils/productMapper";
 
@@ -74,11 +75,20 @@ export default function Navbar() {
 
   // Check authentication status
   useEffect(() => {
-    const token = localStorage.getItem("accessToken");
+    const accessToken = tokenManager.getAccessToken();
+
     const userData = localStorage.getItem("user");
-    if (token && userData) {
+
+    if (accessToken) {
       setIsAuthenticated(true);
-      setUser(JSON.parse(userData));
+
+      if (userData) {
+        try {
+          setUser(JSON.parse(userData));
+        } catch {
+          setUser(null);
+        }
+      }
     } else {
       setIsAuthenticated(false);
       setUser(null);
@@ -117,11 +127,13 @@ export default function Navbar() {
   };
 
   const handleLogout = () => {
-    localStorage.removeItem("accessToken");
-    localStorage.removeItem("refreshToken");
+    tokenManager.clear();
+
     localStorage.removeItem("user");
+
     setIsAuthenticated(false);
     setUser(null);
+
     navigate("/");
   };
 
@@ -379,23 +391,26 @@ export default function Navbar() {
               </Link>
 
               {/* User Profile / Authentication */}
-              {isAuthenticated && user ? (
+              {isAuthenticated ? (
                 <div className="hidden sm:flex items-center gap-2">
-                  <Link to="/dashboard">
-                    <button className="flex items-center gap-2 px-3 py-2 rounded-xl text-sm font-medium text-gray-700 hover:bg-indigo-50 hover:text-indigo-600 transition-all">
-                      <div className="w-8 h-8 rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center text-white text-sm font-bold">
-                        {user.name?.charAt(0).toUpperCase() || "U"}
-                      </div>
-                      <span className="hidden xl:inline">
-                        {user.name?.split(" ")[0]}
-                      </span>
-                    </button>
+                  {/* Dashboard / Profile */}
+                  <Link
+                    to="/dashboard"
+                    title="My Dashboard"
+                    className="w-10 h-10 rounded-xl flex items-center justify-center text-gray-500 hover:text-indigo-600 hover:bg-indigo-50 transition-all"
+                  >
+                    <span className="material-symbols-outlined text-2xl">
+                      account_circle
+                    </span>
                   </Link>
+
+                  {/* Logout */}
                   <button
                     onClick={handleLogout}
-                    className="px-3 py-2 rounded-xl text-sm font-medium text-red-500 hover:bg-red-50 transition-all"
+                    title="Logout"
+                    className="w-10 h-10 rounded-xl flex items-center justify-center text-gray-400 hover:text-red-500 hover:bg-red-50 transition-all"
                   >
-                    <span className="material-symbols-outlined text-base">
+                    <span className="material-symbols-outlined text-xl">
                       logout
                     </span>
                   </button>
@@ -407,6 +422,7 @@ export default function Navbar() {
                       Sign In
                     </button>
                   </Link>
+
                   <Link to="/signup" className="hidden sm:block">
                     <button className="px-5 py-2.5 border-2 border-gray-200 text-gray-700 text-sm font-semibold rounded-xl hover:border-indigo-300 hover:text-indigo-600 transition-all">
                       Sign Up
@@ -546,23 +562,34 @@ export default function Navbar() {
                 </div>
 
                 {/* User Profile - Mobile */}
-                {isAuthenticated && user ? (
-                  <div className="mb-6 p-4 bg-gradient-to-br from-indigo-50 to-purple-50 rounded-2xl border border-indigo-100">
-                    <div className="flex items-center gap-3">
-                      <div className="w-12 h-12 rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center text-white text-xl font-bold">
-                        {user.name?.charAt(0).toUpperCase() || "U"}
+                {isAuthenticated ? (
+                  <div className="mb-6">
+                    <Link
+                      to="/dashboard"
+                      onClick={() => setMobileOpen(false)}
+                      className="flex items-center gap-3 p-4 bg-gradient-to-br from-indigo-50 to-purple-50 rounded-2xl border border-indigo-100"
+                    >
+                      <div className="w-12 h-12 rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center text-white">
+                        <span className="material-symbols-outlined text-2xl">
+                          account_circle
+                        </span>
                       </div>
+
                       <div>
-                        <p className="font-bold text-gray-900">{user.name}</p>
-                        <p className="text-xs text-gray-500">{user.email}</p>
+                        <p className="font-bold text-gray-900">
+                          {user?.name || "My Account"}
+                        </p>
+
+                        <p className="text-xs text-gray-500">View Dashboard</p>
                       </div>
-                    </div>
+                    </Link>
+
                     <button
                       onClick={() => {
                         handleLogout();
                         setMobileOpen(false);
                       }}
-                      className="mt-3 w-full py-2 bg-red-50 text-red-600 rounded-xl text-sm font-semibold hover:bg-red-100 transition-all flex items-center justify-center gap-2"
+                      className="mt-3 w-full py-2.5 bg-red-50 text-red-600 rounded-xl text-sm font-semibold hover:bg-red-100 transition-all flex items-center justify-center gap-2"
                     >
                       <span className="material-symbols-outlined text-base">
                         logout
@@ -573,18 +600,18 @@ export default function Navbar() {
                 ) : (
                   <div className="mb-6 grid grid-cols-2 gap-2">
                     <Link to="/login" onClick={() => setMobileOpen(false)}>
-                      <button className="w-full py-3 bg-gradient-to-r from-indigo-500 to-purple-600 text-white rounded-xl text-sm font-semibold hover:shadow-lg transition-all">
+                      <button className="w-full py-3 bg-gradient-to-r from-indigo-500 to-purple-600 text-white rounded-xl text-sm font-semibold">
                         Sign In
                       </button>
                     </Link>
+
                     <Link to="/signup" onClick={() => setMobileOpen(false)}>
-                      <button className="w-full py-3 border-2 border-gray-200 text-gray-700 rounded-xl text-sm font-semibold hover:border-indigo-300 hover:text-indigo-600 transition-all">
+                      <button className="w-full py-3 border-2 border-gray-200 text-gray-700 rounded-xl text-sm font-semibold">
                         Sign Up
                       </button>
                     </Link>
                   </div>
                 )}
-
                 {/* Mobile Nav Links */}
                 <div className="space-y-1 mb-6">
                   {[

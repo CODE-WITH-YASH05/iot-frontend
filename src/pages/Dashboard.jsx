@@ -115,7 +115,7 @@ export default function Dashboard() {
             {
               icon: "location_on",
               label: "Addresses",
-              path: "/addresses",
+              path: "/Address",
               color: "text-green-600",
             },
             {

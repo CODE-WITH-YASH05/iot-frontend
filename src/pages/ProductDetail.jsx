@@ -1,16 +1,146 @@
 import React, { useState, useEffect, useRef } from "react";
-import { useParams, Link } from "react-router-dom";
+import { useParams, Link, useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import Navbar from "../components/Navbar";
 import Footer from "../components/Footer";
 import ImageWithFallback from "../components/ImageWithFallback";
-import { useCart } from "../store/useStore";
+import Reviews from "../features/Reviews/components/Reviews";
+import { useCart } from "../features/cart/hooks/useCart";
+import { tokenManager } from "../api/token-manager";
 import { useProduct } from "../features/products/hooks/useProduct";
+import { useWishlist } from "../features/Wishlist/hooks/useWishlist";
 import { mapProduct } from "../features/products/utils/productMapper";
+
+// ==========================================================
+// FULL SCREEN IMAGE VIEWER
+// ==========================================================
+
+const FullScreenImageViewer = ({
+  images,
+  currentIndex,
+  onClose,
+  onNext,
+  onPrev,
+}) => {
+  const [isZoomed, setIsZoomed] = useState(false);
+  const [touchStartX, setTouchStartX] = useState(0);
+  const [touchEndX, setTouchEndX] = useState(0);
+
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      if (e.key === "Escape") onClose();
+      if (e.key === "ArrowLeft") onPrev();
+      if (e.key === "ArrowRight") onNext();
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [onClose, onPrev, onNext]);
+
+  const handleTouchStart = (e) => {
+    setTouchStartX(e.touches[0].clientX);
+  };
+
+  const handleTouchEnd = (e) => {
+    setTouchEndX(e.changedTouches[0].clientX);
+    if (touchStartX - touchEndX > 50) {
+      onNext();
+    } else if (touchStartX - touchEndX < -50) {
+      onPrev();
+    }
+  };
+
+  return (
+    <motion.div
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      className="fixed inset-0 z-50 bg-black/95 backdrop-blur-xl flex items-center justify-center"
+      onClick={onClose}
+    >
+      {/* Close Button */}
+      <button
+        onClick={onClose}
+        className="absolute top-4 right-4 z-10 w-12 h-12 bg-white/10 hover:bg-white/20 rounded-full flex items-center justify-center text-white transition-all"
+      >
+        <span className="material-symbols-outlined text-3xl">close</span>
+      </button>
+
+      {/* Image Counter */}
+      <div className="absolute top-4 left-1/2 -translate-x-1/2 z-10 bg-black/50 backdrop-blur-sm text-white px-4 py-2 rounded-full text-sm font-medium">
+        {currentIndex + 1} / {images.length}
+      </div>
+
+      {/* Main Image */}
+      <div
+        className="relative w-full h-full flex items-center justify-center px-4 cursor-zoom-in"
+        onClick={(e) => {
+          e.stopPropagation();
+          setIsZoomed(!isZoomed);
+        }}
+        onTouchStart={handleTouchStart}
+        onTouchEnd={handleTouchEnd}
+      >
+        <motion.img
+          src={images[currentIndex] || images[0]}
+          alt={`Product ${currentIndex + 1}`}
+          className={`max-h-[90vh] max-w-[90vw] object-contain transition-transform duration-300 ${
+            isZoomed ? "scale-150" : "scale-100"
+          }`}
+          initial={{ scale: 0.8, opacity: 0 }}
+          animate={{ scale: 1, opacity: 1 }}
+          transition={{ duration: 0.3 }}
+          onError={(e) => {
+            e.target.src = "/placeholder-image.png";
+          }}
+        />
+      </div>
+
+      {/* Navigation Buttons */}
+      {images.length > 1 && (
+        <>
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              onPrev();
+            }}
+            className="absolute left-4 top-1/2 -translate-y-1/2 w-14 h-14 bg-white/10 hover:bg-white/20 rounded-full flex items-center justify-center text-white transition-all"
+          >
+            <span className="material-symbols-outlined text-4xl">
+              chevron_left
+            </span>
+          </button>
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              onNext();
+            }}
+            className="absolute right-4 top-1/2 -translate-y-1/2 w-14 h-14 bg-white/10 hover:bg-white/20 rounded-full flex items-center justify-center text-white transition-all"
+          >
+            <span className="material-symbols-outlined text-4xl">
+              chevron_right
+            </span>
+          </button>
+        </>
+      )}
+
+      {/* Zoom Indicator */}
+      <div className="absolute bottom-4 left-1/2 -translate-x-1/2 bg-black/50 backdrop-blur-sm text-white px-4 py-2 rounded-full text-xs">
+        {isZoomed ? "🔍 Click to zoom out" : "🔍 Click to zoom in"}
+      </div>
+    </motion.div>
+  );
+};
+
+// ==========================================================
+// PRODUCT DETAIL COMPONENT
+// ==========================================================
 
 export default function ProductDetail() {
   const { slug } = useParams();
-  const { addToCart } = useCart();
+  const navigate = useNavigate();
+  const { addItem, actionLoading } = useCart();
+  const { toggleWishlist, isInWishlist, isAdding } = useWishlist();
+
   const [selectedImg, setSelectedImg] = useState(0);
   const [openAccordion, setOpenAccordion] = useState(null);
   const [added, setAdded] = useState(false);
@@ -19,6 +149,9 @@ export default function ProductDetail() {
   const [touchStartX, setTouchStartX] = useState(0);
   const [touchEndX, setTouchEndX] = useState(0);
   const [isDragging, setIsDragging] = useState(false);
+  const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 });
+  const [showFullScreen, setShowFullScreen] = useState(false);
+  const [fullScreenIndex, setFullScreenIndex] = useState(0);
   const mainImageRef = useRef(null);
 
   // Fetch product from API
@@ -38,6 +171,9 @@ export default function ProductDetail() {
   const primaryImage = product?.image || "/placeholder-image.png";
   const displayImages = images.length > 0 ? images : [primaryImage];
 
+  // Check if product is in wishlist
+  const inWishlist = product ? isInWishlist(product.id) : false;
+
   // Reset selected image when product changes
   useEffect(() => {
     if (product) {
@@ -52,15 +188,36 @@ export default function ProductDetail() {
     }
   };
 
-  // Handle next/prev image
+  // Handle full screen image view
+  const openFullScreen = (index) => {
+    setFullScreenIndex(index);
+    setShowFullScreen(true);
+    document.body.style.overflow = "hidden";
+  };
+
+  const closeFullScreen = () => {
+    setShowFullScreen(false);
+    document.body.style.overflow = "auto";
+  };
+
   const nextImage = () => {
-    setSelectedImg((prev) => (prev + 1) % displayImages.length);
+    if (showFullScreen) {
+      setFullScreenIndex((prev) => (prev + 1) % displayImages.length);
+    } else {
+      setSelectedImg((prev) => (prev + 1) % displayImages.length);
+    }
   };
 
   const prevImage = () => {
-    setSelectedImg(
-      (prev) => (prev - 1 + displayImages.length) % displayImages.length,
-    );
+    if (showFullScreen) {
+      setFullScreenIndex(
+        (prev) => (prev - 1 + displayImages.length) % displayImages.length,
+      );
+    } else {
+      setSelectedImg(
+        (prev) => (prev - 1 + displayImages.length) % displayImages.length,
+      );
+    }
   };
 
   // Touch handlers for swipe
@@ -77,10 +234,8 @@ export default function ProductDetail() {
   const handleTouchEnd = () => {
     setIsDragging(false);
     if (touchStartX - touchEndX > 50) {
-      // Swipe left - next image
       nextImage();
     } else if (touchStartX - touchEndX < -50) {
-      // Swipe right - previous image
       prevImage();
     }
     setTouchStartX(0);
@@ -94,17 +249,68 @@ export default function ProductDetail() {
         prevImage();
       } else if (e.key === "ArrowRight") {
         nextImage();
+      } else if (e.key === "Escape" && showFullScreen) {
+        closeFullScreen();
       }
     };
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [displayImages.length]);
+  }, [displayImages.length, showFullScreen]);
 
-  const handleAddToCart = () => {
+  const handleAddToCart = async () => {
     if (!product) return;
-    addToCart(product, quantity);
-    setAdded(true);
-    setTimeout(() => setAdded(false), 1500);
+
+    const accessToken = tokenManager.getAccessToken();
+
+    if (!accessToken) {
+      navigate("/login", {
+        state: {
+          from: `/product/${product.slug}`,
+          action: "add_to_cart",
+          productId: product.id,
+          quantity,
+        },
+      });
+      return;
+    }
+
+    try {
+      await addItem(product.id, quantity);
+      setAdded(true);
+      setTimeout(() => {
+        setAdded(false);
+      }, 1500);
+    } catch (error) {
+      console.error("Add to cart failed:", error);
+    }
+  };
+
+  const handleWishlistToggle = async () => {
+    if (!product) return;
+
+    const accessToken = tokenManager.getAccessToken();
+
+    if (!accessToken) {
+      navigate("/login", {
+        state: {
+          from: `/product/${product.slug}`,
+          action: "wishlist",
+          productId: product.id,
+        },
+      });
+      return;
+    }
+
+    try {
+      const result = await toggleWishlist(product.id);
+      if (!result?.success) {
+        console.error("Wishlist failed:", result?.error);
+        return;
+      }
+      console.log("Wishlist updated successfully");
+    } catch (error) {
+      console.error("Wishlist toggle failed:", error);
+    }
   };
 
   const toggleAccordion = (section) => {
@@ -175,6 +381,19 @@ export default function ProductDetail() {
       <div className="fixed top-40 left-10 w-64 h-64 bg-indigo-200/20 rounded-full blur-3xl pointer-events-none"></div>
       <div className="fixed bottom-40 right-10 w-96 h-96 bg-purple-200/20 rounded-full blur-3xl pointer-events-none"></div>
 
+      {/* Full Screen Image Viewer */}
+      <AnimatePresence>
+        {showFullScreen && (
+          <FullScreenImageViewer
+            images={displayImages}
+            currentIndex={fullScreenIndex}
+            onClose={closeFullScreen}
+            onNext={nextImage}
+            onPrev={prevImage}
+          />
+        )}
+      </AnimatePresence>
+
       <main className="pt-20 md:pt-24 relative">
         <section className="max-w-7xl mx-auto px-4 sm:px-6 md:px-16 py-8 md:py-12">
           {/* Breadcrumb */}
@@ -213,25 +432,14 @@ export default function ProductDetail() {
               transition={{ duration: 0.5 }}
               className="space-y-3 md:space-y-4"
             >
-              {/* Main Image with Touch Support */}
+              {/* Main Image */}
               <div
                 ref={mainImageRef}
-                className="relative bg-white rounded-2xl md:rounded-3xl overflow-hidden border border-gray-100 shadow-lg md:shadow-xl group"
+                className="relative bg-white rounded-2xl md:rounded-3xl overflow-hidden border border-gray-100 shadow-lg md:shadow-xl group cursor-pointer"
                 onTouchStart={handleTouchStart}
                 onTouchMove={handleTouchMove}
                 onTouchEnd={handleTouchEnd}
-                onMouseMove={(e) => {
-                  if (window.innerWidth >= 1024) {
-                    const rect = e.currentTarget.getBoundingClientRect();
-                    const x = ((e.clientX - rect.left) / rect.width) * 100;
-                    const y = ((e.clientY - rect.top) / rect.height) * 100;
-                    setMousePosition({ x, y });
-                  }
-                }}
-                onMouseEnter={() =>
-                  window.innerWidth >= 1024 && setIsZoomed(true)
-                }
-                onMouseLeave={() => setIsZoomed(false)}
+                onClick={() => openFullScreen(selectedImg)}
               >
                 <div className="aspect-square flex items-center justify-center p-4 sm:p-6 md:p-8 relative">
                   <AnimatePresence mode="wait">
@@ -251,13 +459,26 @@ export default function ProductDetail() {
                       />
                     </motion.div>
                   </AnimatePresence>
+
+                  {/* Full Screen Overlay */}
+                  <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-all duration-300 flex items-center justify-center">
+                    <div className="opacity-0 group-hover:opacity-100 transition-all duration-300 bg-black/50 backdrop-blur-sm text-white px-4 py-2 rounded-full text-sm flex items-center gap-2">
+                      <span className="material-symbols-outlined text-base">
+                        fullscreen
+                      </span>
+                      Click to enlarge
+                    </div>
+                  </div>
                 </div>
 
                 {/* Navigation Arrows - Desktop */}
                 {displayImages.length > 1 && (
                   <>
                     <button
-                      onClick={prevImage}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        prevImage();
+                      }}
                       className="absolute left-2 md:left-4 top-1/2 -translate-y-1/2 w-8 h-8 md:w-10 md:h-10 bg-white/90 backdrop-blur-sm rounded-full shadow-lg flex items-center justify-center hover:bg-white transition-all hover:scale-110 hidden sm:flex"
                     >
                       <span className="material-symbols-outlined text-gray-700">
@@ -265,7 +486,10 @@ export default function ProductDetail() {
                       </span>
                     </button>
                     <button
-                      onClick={nextImage}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        nextImage();
+                      }}
                       className="absolute right-2 md:right-4 top-1/2 -translate-y-1/2 w-8 h-8 md:w-10 md:h-10 bg-white/90 backdrop-blur-sm rounded-full shadow-lg flex items-center justify-center hover:bg-white transition-all hover:scale-110 hidden sm:flex"
                     >
                       <span className="material-symbols-outlined text-gray-700">
@@ -308,16 +532,9 @@ export default function ProductDetail() {
                     </span>
                   </div>
                 )}
-
-                {/* Zoom Indicator */}
-                {window.innerWidth >= 1024 && (
-                  <div className="absolute bottom-4 right-4 bg-black/50 backdrop-blur-sm text-white text-[10px] px-2 py-1 rounded-full opacity-0 group-hover:opacity-100 transition-opacity">
-                    🔍 Hover to zoom
-                  </div>
-                )}
               </div>
 
-              {/* Thumbnail Gallery - Horizontal Scroll */}
+              {/* Thumbnail Gallery */}
               {displayImages.length > 1 && (
                 <motion.div
                   initial={{ opacity: 0 }}
@@ -508,7 +725,7 @@ export default function ProductDetail() {
                   whileHover={{ scale: 1.02 }}
                   whileTap={{ scale: 0.98 }}
                   onClick={handleAddToCart}
-                  disabled={!product.inStock}
+                  disabled={!product.inStock || actionLoading}
                   className={`flex-1 py-3 md:py-4 rounded-xl md:rounded-2xl font-bold text-xs md:text-sm transition-all flex items-center justify-center gap-2 ${
                     !product.inStock
                       ? "bg-gray-200 text-gray-500 cursor-not-allowed"
@@ -517,18 +734,28 @@ export default function ProductDetail() {
                         : "bg-gradient-to-r from-indigo-600 to-purple-600 text-white shadow-lg shadow-indigo-500/25 hover:shadow-xl hover:shadow-indigo-500/40"
                   }`}
                 >
-                  <span className="material-symbols-outlined text-base md:text-xl">
-                    {added
-                      ? "check_circle"
-                      : !product.inStock
-                        ? "block"
-                        : "shopping_cart"}
-                  </span>
-                  {!product.inStock
-                    ? "Out of Stock"
-                    : added
-                      ? "Added! ✓"
-                      : "Add to Cart"}
+                  {actionLoading ? (
+                    <>
+                      <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                      Adding...
+                    </>
+                  ) : (
+                    <>
+                      <span className="material-symbols-outlined text-base md:text-xl">
+                        {added
+                          ? "check_circle"
+                          : !product.inStock
+                            ? "block"
+                            : "shopping_cart"}
+                      </span>
+
+                      {!product.inStock
+                        ? "Out of Stock"
+                        : added
+                          ? "Added! ✓"
+                          : "Add to Cart"}
+                    </>
+                  )}
                 </motion.button>
 
                 <motion.button
@@ -549,11 +776,27 @@ export default function ProductDetail() {
 
               {/* Quick Action Icons */}
               <div className="flex items-center justify-center gap-4 md:gap-6 py-2 md:py-3">
-                <button className="flex items-center gap-1 md:gap-2 text-xs md:text-sm text-gray-500 hover:text-indigo-600 transition-colors group">
+                <button
+                  type="button"
+                  onClick={handleWishlistToggle}
+                  disabled={isAdding}
+                  className={`flex items-center gap-1 md:gap-2 text-xs md:text-sm transition-colors group ${
+                    inWishlist
+                      ? "text-red-500"
+                      : "text-gray-500 hover:text-red-500"
+                  }`}
+                >
                   <span className="material-symbols-outlined text-base md:text-xl group-hover:scale-110 transition-transform">
-                    favorite
+                    {isAdding
+                      ? "progress_activity"
+                      : inWishlist
+                        ? "favorite"
+                        : "favorite_border"}
                   </span>
-                  <span className="hidden xs:inline">Wishlist</span>
+
+                  <span className="hidden xs:inline">
+                    {inWishlist ? "Remove from Wishlist" : "Wishlist"}
+                  </span>
                 </button>
                 <button className="flex items-center gap-1 md:gap-2 text-xs md:text-sm text-gray-500 hover:text-indigo-600 transition-colors group">
                   <span className="material-symbols-outlined text-base md:text-xl group-hover:scale-110 transition-transform">
@@ -656,6 +899,9 @@ export default function ProductDetail() {
               </div>
             </motion.div>
           </div>
+
+          {/* Reviews Section */}
+          <Reviews productSlug={slug} />
         </section>
       </main>
       <Footer />

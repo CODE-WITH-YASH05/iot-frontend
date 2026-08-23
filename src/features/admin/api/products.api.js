@@ -1,116 +1,114 @@
-import adminApiClient from "../../../api/admin-client";
+import adminClient from "../../../api/admin-client";
 
-const API_BASE = "/api/v1";
+const PRODUCTS_BASE = "/api/v1/products";
 
 export const adminProductsApi = {
-  // =========================================================
-  // PRODUCTS
-  // =========================================================
-
   getProducts(params = {}) {
-    return apiClient.get(`${API_BASE}/products/`, {
+    return adminClient.get(`${PRODUCTS_BASE}/`, {
       params,
     });
   },
 
   getProduct(slug) {
-    return apiClient.get(`${API_BASE}/products/${slug}/`);
+    return adminClient.get(`${PRODUCTS_BASE}/${encodeURIComponent(slug)}/`);
   },
 
   createProduct(data) {
-    return apiClient.post(`${API_BASE}/products/`, data);
+    return adminClient.post(`${PRODUCTS_BASE}/`, data);
   },
 
   updateProduct(slug, data) {
-    return apiClient.patch(`${API_BASE}/products/${slug}/`, data);
+    return adminClient.patch(
+      `${PRODUCTS_BASE}/${encodeURIComponent(slug)}/`,
+      data,
+    );
   },
 
   deleteProduct(slug) {
-    return apiClient.delete(`${API_BASE}/products/${slug}/`);
+    return adminClient.delete(`${PRODUCTS_BASE}/${encodeURIComponent(slug)}/`);
   },
-
-  // =========================================================
-  // PRODUCT IMAGES
-  // =========================================================
 
   getImages(slug) {
-    return apiClient.get(`${API_BASE}/products/${slug}/images/`);
+    return adminClient.get(
+      `${PRODUCTS_BASE}/${encodeURIComponent(slug)}/images/`,
+    );
   },
 
-  uploadImage(slug, formData) {
-    return apiClient.post(`${API_BASE}/products/${slug}/images/`, formData);
+  uploadImage(slug, data) {
+    return adminClient.post(
+      `${PRODUCTS_BASE}/${encodeURIComponent(slug)}/images/`,
+      data,
+    );
   },
 
-  getImage(slug, imageId) {
-    return apiClient.get(`${API_BASE}/products/${slug}/images/${imageId}/`);
-  },
-
-  updateImage(slug, imageId, formData) {
-    return apiClient.patch(
-      `${API_BASE}/products/${slug}/images/${imageId}/`,
-      formData,
+  updateImage(slug, imageId, data) {
+    return adminClient.patch(
+      `${PRODUCTS_BASE}/${encodeURIComponent(slug)}/images/${imageId}/`,
+      data,
     );
   },
 
   deleteImage(slug, imageId) {
-    return apiClient.delete(`${API_BASE}/products/${slug}/images/${imageId}/`);
-  },
-
-  setPrimaryImage(slug, imageId) {
-    return apiClient.post(
-      `${API_BASE}/products/${slug}/images/${imageId}/primary/`,
+    return adminClient.delete(
+      `${PRODUCTS_BASE}/${encodeURIComponent(slug)}/images/${imageId}/`,
     );
   },
 
-  // =========================================================
-  // PRODUCT VIDEOS
-  // =========================================================
+  setPrimaryImage(slug, imageId) {
+    return adminClient.post(
+      `${PRODUCTS_BASE}/${encodeURIComponent(slug)}/images/${imageId}/primary/`,
+    );
+  },
 
   getVideos(slug) {
-    return apiClient.get(`${API_BASE}/products/${slug}/videos/`);
+    return adminClient.get(
+      `${PRODUCTS_BASE}/${encodeURIComponent(slug)}/videos/`,
+    );
   },
 
-  uploadVideo(slug, formData) {
-    return apiClient.post(`${API_BASE}/products/${slug}/videos/`, formData);
+  uploadVideo(slug, data) {
+    return adminClient.post(
+      `${PRODUCTS_BASE}/${encodeURIComponent(slug)}/videos/`,
+      data,
+    );
   },
 
-  getVideo(slug, videoId) {
-    return apiClient.get(`${API_BASE}/products/${slug}/videos/${videoId}/`);
-  },
-
-  updateVideo(slug, videoId, formData) {
-    return apiClient.patch(
-      `${API_BASE}/products/${slug}/videos/${videoId}/`,
-      formData,
+  updateVideo(slug, videoId, data) {
+    return adminClient.patch(
+      `${PRODUCTS_BASE}/${encodeURIComponent(slug)}/videos/${videoId}/`,
+      data,
     );
   },
 
   deleteVideo(slug, videoId) {
-    return apiClient.delete(`${API_BASE}/products/${slug}/videos/${videoId}/`);
+    return adminClient.delete(
+      `${PRODUCTS_BASE}/${encodeURIComponent(slug)}/videos/${videoId}/`,
+    );
   },
 
-  // =========================================================
-  // PRODUCT SPECIFICATIONS
-  // =========================================================
-
   getSpecifications(slug) {
-    return apiClient.get(`${API_BASE}/products/${slug}/specifications/`);
+    return adminClient.get(
+      `${PRODUCTS_BASE}/${encodeURIComponent(slug)}/specifications/`,
+    );
   },
 
   createSpecification(slug, data) {
-    return apiClient.post(`${API_BASE}/products/${slug}/specifications/`, data);
+    return adminClient.post(
+      `${PRODUCTS_BASE}/${encodeURIComponent(slug)}/specifications/`,
+      data,
+    );
   },
 
   updateSpecification(slug, specificationId, data) {
-    return apiClient.patch(
-      `${API_BASE}/products/${slug}/specifications/${specificationId}/`,
+    return adminClient.patch(
+      `${PRODUCTS_BASE}/${encodeURIComponent(slug)}/specifications/${specificationId}/`,
       data,
     );
   },
 
   deleteSpecification(slug, specificationId) {
-    return apiClient.delete(
-      `${API_BASE}/products/${slug}/specifications/${specificationId}/`,
+    return adminClient.delete(
+      `${PRODUCTS_BASE}/${encodeURIComponent(slug)}/specifications/${specificationId}/`,
     );
   },
 };

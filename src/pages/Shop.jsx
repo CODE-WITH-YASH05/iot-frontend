@@ -1,10 +1,11 @@
 import React, { useState, useMemo } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import Navbar from "../components/Navbar";
 import Footer from "../components/Footer";
 import ImageWithFallback from "../components/ImageWithFallback";
-import { useCart } from "../store/useStore";
+import { useCart } from "../features/cart/hooks/useCart";
+import { tokenManager } from "../api/token-manager";
 import { useProducts } from "../features/products/hooks/useProducts";
 import { mapProduct } from "../features/products/utils/productMapper";
 
@@ -17,7 +18,8 @@ const sortOptions = [
 ];
 
 export default function Shop() {
-  const { addToCart } = useCart();
+  const { addItem, actionLoading } = useCart();
+  const navigate = useNavigate();
   const [viewMode, setViewMode] = useState("grid");
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedCategories, setSelectedCategories] = useState([]);
@@ -123,13 +125,43 @@ export default function Shop() {
     return result;
   }, [products, searchQuery, selectedCategories, priceRange, sortBy]);
 
-  const handleAddToCart = (product) => {
-    addToCart(product);
-    setAddedItems((prev) => [...prev, product.id]);
-    setTimeout(
-      () => setAddedItems((prev) => prev.filter((id) => id !== product.id)),
-      1500,
-    );
+  const handleAddToCart = async (product) => {
+    if (!product) return;
+
+    // ======================================================
+    // LOGIN CHECK
+    // ======================================================
+
+    const accessToken = tokenManager.getAccessToken();
+
+    if (!accessToken) {
+      navigate("/login", {
+        state: {
+          from: `/product/${product.slug || product.id}`,
+          action: "add_to_cart",
+          productId: product.id,
+          quantity: 1,
+        },
+      });
+
+      return;
+    }
+
+    // ======================================================
+    // ADD TO CART API
+    // ======================================================
+
+    try {
+      await addItem(product.id, 1);
+
+      setAddedItems((prev) => [...prev, product.id]);
+
+      setTimeout(() => {
+        setAddedItems((prev) => prev.filter((id) => id !== product.id));
+      }, 1500);
+    } catch (error) {
+      console.error("Add to cart failed:", error);
+    }
   };
 
   const handleCategoryToggle = (categorySlug) => {
@@ -657,7 +689,7 @@ export default function Shop() {
                             e.preventDefault();
                             handleAddToCart(product);
                           }}
-                          disabled={!product.inStock}
+                          disabled={!product.inStock || actionLoading}
                           className={`text-xs uppercase tracking-wider font-bold px-3 py-1.5 rounded-lg border transition-all ${
                             !product.inStock
                               ? "bg-gray-100 border-gray-200 text-gray-400 cursor-not-allowed"
@@ -666,11 +698,13 @@ export default function Shop() {
                                 : "bg-white border-gray-200 text-gray-600 hover:border-indigo-400 hover:text-indigo-600 hover:bg-indigo-50 hover:shadow-md"
                           }`}
                         >
-                          {!product.inStock
-                            ? "Out of Stock"
-                            : addedItems.includes(product.id)
-                              ? "✓ Added"
-                              : "+ Cart"}
+                          {actionLoading
+                            ? "Adding..."
+                            : !product.inStock
+                              ? "Out of Stock"
+                              : addedItems.includes(product.id)
+                                ? "✓ Added"
+                                : "+ Cart"}
                         </button>
                       </div>
                     </div>

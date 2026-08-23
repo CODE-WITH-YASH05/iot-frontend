@@ -11,19 +11,17 @@ import AddProduct from "../pages/products/AddProduct";
 import AdminCategories from "../pages/AdminCategories";
 import AdminBrands from "../pages/AdminBrands";
 import AdminInventory from "../pages/AdminInventory";
-
+import AdminReviews from "../pages/Reviews";
+import AdminWishlist from "../pages/Wishlist";
+import AdminCart from "../pages/AdminCart";
+import AdminUsers from "../pages/AdminUsers";
+import AdminUserDetail from "../pages/AdminUserDetail";
+import AdminOrders from "../pages/AdminOrders";
+import AdminOrderDetails from "../pages/AdminOrderDetails";
 export default function AdminRoutes() {
   return (
     <Routes>
-      {/* =========================
-          PUBLIC ADMIN ROUTES
-      ========================= */}
-
       <Route path="login" element={<AdminLogin />} />
-
-      {/* =========================
-          PROTECTED ADMIN ROUTES
-      ========================= */}
 
       <Route element={<AdminProtectedRoute />}>
         <Route element={<AdminLayout />}>
@@ -47,10 +45,34 @@ export default function AdminRoutes() {
 
           {/* /admin/inventory */}
           <Route path="inventory" element={<AdminInventory />} />
+
+          {/* /admin/reviews */}
+          <Route path="reviews" element={<AdminReviews />} />
+
+          {/* /admin/wishlist */}
+          <Route path="wishlist" element={<AdminWishlist />} />
+
+          {/* /admin/AdminCart */}
+          <Route path="AdminCart" element={<AdminCart />} />
+
+          {/* /admin/AdminUsers */}
+          <Route path="AdminUsers" element={<AdminUsers />} />
+
+          {/* /admin/AdminUserDetail */}
+          <Route path="users/:userId" element={<AdminUserDetail />} />
+
+          {/* /admin/AdminOrders */}
+          <Route path="AdminOrders" element={<AdminOrders />} />
+
+          {/* /admin/AdminOrders */}
+          <Route path="/orders/:orderId" element={<AdminOrderDetails />} />
         </Route>
       </Route>
 
-      {/* Unknown admin route */}
+      {/* =========================
+          UNKNOWN ADMIN ROUTE
+      ========================= */}
+
       <Route path="*" element={<Navigate to="/admin" replace />} />
     </Routes>
   );

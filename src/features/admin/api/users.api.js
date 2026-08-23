@@ -1,25 +1,34 @@
-import apiClient from "../../../api/client";
+import adminApiClient from "../../../api/admin-client";
 
 const ADMIN_BASE = "/api/v1/admin";
 
 export const adminUsersApi = {
+  // Get all users
   getUsers(params = {}) {
-    return apiClient.get(`${ADMIN_BASE}/users/`, { params });
+    return adminApiClient.get(`${ADMIN_BASE}/users/`, {
+      params,
+    });
   },
 
+  // Get single user
   getUser(id) {
-    return apiClient.get(`${ADMIN_BASE}/users/${id}/`);
+    return adminApiClient.get(`${ADMIN_BASE}/users/${id}/`);
   },
 
+  // Update user
   updateUser(id, data) {
-    return apiClient.put(`${ADMIN_BASE}/users/${id}/`, data);
+    return adminApiClient.patch(`${ADMIN_BASE}/users/${id}/`, data);
   },
 
+  // Delete user
   deleteUser(id) {
-    return apiClient.delete(`${ADMIN_BASE}/users/${id}/`);
+    return adminApiClient.delete(`${ADMIN_BASE}/users/${id}/`);
   },
 
-  toggleStatus(id) {
-    return apiClient.patch(`${ADMIN_BASE}/users/${id}/toggle-status/`);
+  // Change user status
+  updateStatus(id, isActive) {
+    return adminApiClient.patch(`${ADMIN_BASE}/users/${id}/`, {
+      is_active: isActive,
+    });
   },
 };

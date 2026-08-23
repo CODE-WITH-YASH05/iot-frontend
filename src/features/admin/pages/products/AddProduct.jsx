@@ -7,7 +7,7 @@ import { adminProductsApi } from "../../api/products.api";
 import { adminCategoriesApi } from "../../api/categories.api";
 
 import { adminBrandsApi } from "../../api/brands.api";
-
+import adminApiClient from "../../../../api/admin-client";
 // =========================================================
 // HELPERS
 // =========================================================
