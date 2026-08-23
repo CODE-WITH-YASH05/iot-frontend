@@ -7,30 +7,104 @@ import useAdminOrders from "../hooks/useAdminOrders";
 import { STATUS_LABELS, STATUS_COLORS } from "../constants/statusOptions";
 
 // ==========================================================
-// PRODUCT IMAGE - SAME AS ADMIN WISHLIST
+// PRODUCT IMAGE - USING product_image FROM BACKEND
 // ==========================================================
 
 const ProductImage = ({ item }) => {
   const [imageError, setImageError] = useState(false);
 
-  const imageUrl = item?.product_image;
+  // Get image from backend response - now product_image is available
+  const getImageUrl = () => {
+    // Direct product_image from serializer
+    if (item?.product_image) {
+      console.log("✅ Found product_image:", item.product_image);
+      return item.product_image;
+    }
 
-  if (!imageUrl || imageError) {
+    // Fallback: Try to get from product object
+    if (item?.product?.images && item.product.images.length > 0) {
+      const primary = item.product.images.find(
+        (img) => img.is_primary === true,
+      );
+      if (primary?.image) {
+        console.log("✅ Found primary image:", primary.image);
+        return primary.image;
+      }
+      const first = item.product.images[0];
+      if (first?.image) {
+        console.log("✅ Found first image:", first.image);
+        return first.image;
+      }
+    }
+
+    // Check if product has direct image fields
+    if (item?.product?.product_image) {
+      console.log(
+        "✅ Found product.product_image:",
+        item.product.product_image,
+      );
+      return item.product.product_image;
+    }
+    if (item?.product?.image) {
+      console.log("✅ Found product.image:", item.product.image);
+      return item.product.image;
+    }
+
+    console.log("❌ No image found for product:", item?.product_name);
+    return null;
+  };
+
+  // Build full URL
+  const buildFullUrl = (url) => {
+    if (!url) return null;
+    if (
+      url.startsWith("http://") ||
+      url.startsWith("https://") ||
+      url.startsWith("data:")
+    ) {
+      return url;
+    }
+    const baseUrl =
+      import.meta.env.VITE_API_BASE_URL || "http://127.0.0.1:8000";
+    // Remove leading slash if present to avoid double slashes
+    const cleanUrl = url.replace(/^\//, "");
+    return `${baseUrl.replace(/\/$/, "")}/${cleanUrl}`;
+  };
+
+  const imageUrl = getImageUrl();
+  const fullImageUrl = buildFullUrl(imageUrl);
+
+  // Debug log
+  console.log("🔍 Product Image Debug:", {
+    productName: item?.product_name,
+    productId: item?.product,
+    imageUrl: imageUrl,
+    fullImageUrl: fullImageUrl,
+    item: item,
+  });
+
+  if (!fullImageUrl || imageError) {
     return (
-      <div className="w-16 h-16 md:w-20 md:h-20 rounded-xl bg-gray-100 border border-gray-200 flex items-center justify-center flex-shrink-0">
-        <span className="text-2xl md:text-3xl">📦</span>
+      <div className="w-20 h-20 md:w-24 md:h-24 rounded-2xl bg-gray-100 border border-gray-200 flex items-center justify-center flex-shrink-0 overflow-hidden">
+        <span className="text-3xl">📦</span>
       </div>
     );
   }
 
   return (
-    <div className="w-16 h-16 md:w-20 md:h-20 rounded-xl bg-white border border-gray-200 overflow-hidden flex items-center justify-center flex-shrink-0 shadow-sm">
+    <div className="w-20 h-20 md:w-24 md:h-24 rounded-2xl bg-white border border-gray-200 overflow-hidden flex items-center justify-center flex-shrink-0 shadow-sm hover:shadow-md transition-shadow">
       <img
-        src={imageUrl}
+        src={fullImageUrl}
         alt={item?.product_name || "Product"}
         className="w-full h-full object-contain p-2"
         loading="lazy"
-        onError={() => setImageError(true)}
+        onError={(e) => {
+          console.error("❌ Image load error:", fullImageUrl);
+          setImageError(true);
+        }}
+        onLoad={() => {
+          console.log("✅ Image loaded successfully:", fullImageUrl);
+        }}
       />
     </div>
   );
@@ -301,10 +375,6 @@ export default function AdminOrderDetails() {
   const [successMessage, setSuccessMessage] = useState("");
   const [updatingStatus, setUpdatingStatus] = useState(false);
 
-  // ========================================================
-  // FETCH ORDER
-  // ========================================================
-
   useEffect(() => {
     if (!orderId) return;
 
@@ -321,10 +391,6 @@ export default function AdminOrderDetails() {
 
     loadOrder();
   }, [orderId, fetchOrder, fetchHistory]);
-
-  // ========================================================
-  // STATUS UPDATE
-  // ========================================================
 
   const handleStatusChange = async (newStatus) => {
     if (!selectedOrder?.id || !newStatus) return;
@@ -361,10 +427,6 @@ export default function AdminOrderDetails() {
     }
   };
 
-  // ========================================================
-  // REFRESH
-  // ========================================================
-
   const handleRefresh = async () => {
     if (!orderId) return;
 
@@ -379,10 +441,6 @@ export default function AdminOrderDetails() {
       toast.error("Failed to refresh order");
     }
   };
-
-  // ========================================================
-  // LOADING
-  // ========================================================
 
   if (detailLoading && !selectedOrder) {
     return (
@@ -401,10 +459,6 @@ export default function AdminOrderDetails() {
       </div>
     );
   }
-
-  // ========================================================
-  // ORDER NOT FOUND
-  // ========================================================
 
   if (!selectedOrder) {
     return (
@@ -437,20 +491,13 @@ export default function AdminOrderDetails() {
     );
   }
 
-  // ========================================================
-  // RENDER
-  // ========================================================
-
   const currentStatus = String(selectedOrder?.status || "").toLowerCase();
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 via-white to-indigo-50/20">
       <main className="pt-24 pb-16 px-4 md:px-6">
         <div className="max-w-7xl mx-auto">
-          {/* =================================================
-              TOP HEADER
-          ================================================= */}
-
+          {/* HEADER */}
           <motion.div
             initial={{ opacity: 0, y: -20 }}
             animate={{ opacity: 1, y: 0 }}
@@ -514,10 +561,7 @@ export default function AdminOrderDetails() {
             </div>
           </motion.div>
 
-          {/* =================================================
-              ALERTS
-          ================================================= */}
-
+          {/* ALERTS */}
           <AnimatePresence>
             {(localError || error) && (
               <motion.div
@@ -557,10 +601,7 @@ export default function AdminOrderDetails() {
             )}
           </AnimatePresence>
 
-          {/* =================================================
-              MAIN GRID
-          ================================================= */}
-
+          {/* MAIN GRID */}
           <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
             {/* LEFT / MAIN */}
             <div className="xl:col-span-2 space-y-6">
@@ -632,7 +673,6 @@ export default function AdminOrderDetails() {
                   </div>
                 </div>
 
-                {/* Status Timeline */}
                 <div className="mt-6 pt-6 border-t border-gray-100">
                   <StatusTimeline currentStatus={selectedOrder.status} />
                 </div>
@@ -658,7 +698,7 @@ export default function AdminOrderDetails() {
                         className="p-4 md:p-5 rounded-2xl border border-gray-200 hover:border-indigo-200 hover:shadow-md transition-all duration-300"
                       >
                         <div className="flex flex-col sm:flex-row gap-4">
-                          {/* Product Image - Using same component as AdminWishlist */}
+                          {/* Product Image - Now uses product_image from backend */}
                           <ProductImage item={item} />
 
                           <div className="flex-1 min-w-0">
@@ -816,7 +856,6 @@ export default function AdminOrderDetails() {
 
             {/* RIGHT SIDEBAR */}
             <div className="space-y-6">
-              {/* CUSTOMER */}
               <SectionCard title="Customer" icon="person">
                 <div className="space-y-2">
                   <InfoRow
@@ -838,7 +877,6 @@ export default function AdminOrderDetails() {
                 </div>
               </SectionCard>
 
-              {/* SHIPPING ADDRESS */}
               <SectionCard title="Shipping Address" icon="location_on">
                 <div className="space-y-2">
                   <InfoRow
@@ -890,7 +928,6 @@ export default function AdminOrderDetails() {
                 </div>
               </SectionCard>
 
-              {/* PAYMENT SUMMARY */}
               <SectionCard title="Payment Summary" icon="receipt_long">
                 <div className="space-y-3">
                   <SummaryRow label="Subtotal" value={selectedOrder.subtotal} />
@@ -914,7 +951,6 @@ export default function AdminOrderDetails() {
                 </div>
               </SectionCard>
 
-              {/* ORDER INFORMATION */}
               <SectionCard title="Order Information" icon="info">
                 <div className="space-y-2">
                   <InfoRow
