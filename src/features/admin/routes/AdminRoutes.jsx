@@ -18,6 +18,9 @@ import AdminUsers from "../pages/AdminUsers";
 import AdminUserDetail from "../pages/AdminUserDetail";
 import AdminOrders from "../pages/AdminOrders";
 import AdminOrderDetails from "../pages/AdminOrderDetails";
+import AdminContact from "../pages/AdminContact";
+import AdminHome from "../pages/AdminHome";
+import AdminBlog from "../pages/AdminBlog";
 export default function AdminRoutes() {
   return (
     <Routes>
@@ -66,6 +69,15 @@ export default function AdminRoutes() {
 
           {/* /admin/AdminOrders */}
           <Route path="/orders/:orderId" element={<AdminOrderDetails />} />
+
+          {/* /admin/AdminContact */}
+          <Route path="contact" element={<AdminContact />} />
+
+          {/* /admin/AdminHome */}
+          <Route path="AdminHome" element={<AdminHome />} />
+
+          {/* /admin/AdminHome */}
+          <Route path="AdminBlog" element={<AdminBlog />} />
         </Route>
       </Route>
 

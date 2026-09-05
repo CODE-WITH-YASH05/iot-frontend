@@ -15,6 +15,9 @@ const menuItems = [
   { name: "Settings", path: "/admin/settings", icon: "settings" },
   { name: "Wishlist", path: "/admin/wishlist", icon: "favorite" },
   { name: "Cart", path: "/admin/AdminCart", icon: "shopping_cart" },
+  { name: "contact", path: "/admin/contact", icon: "contact_page" },
+  { name: "Home", path: "/admin/AdminHome", icon: "home" },
+  { name: "Blog", path: "/admin/AdminBlog", icon: "movie" },
 ];
 
 export default function AdminSidebar({ isOpen, setIsOpen }) {

@@ -8,15 +8,16 @@ import AdminRoutes from "./features/admin/routes/AdminRoutes";
 // PUBLIC / MAIN PAGES
 // ==========================================================
 
-import Home from "./pages/Home";
+import Home from "./features/home/pages/Home";
 import Shop from "./pages/Shop";
 import ProductDetail from "./pages/ProductDetail";
-import Contact from "./pages/Contact";
+
 import Login from "./pages/Login";
 import Signup from "./pages/Signup";
 import Dashboard from "./pages/Dashboard";
-import Blog from "./pages/Blog";
-import BlogDetail from "./pages/BlogDetail";
+
+import Blog from "./features/Blog/pages/Blog";
+import BlogDetail from "./features/Blog/pages/BlogDetail";
 
 // ==========================================================
 // PRODUCT
@@ -57,6 +58,11 @@ import VerifyEmail from "./features/auth/pages/VerifyEmail";
 import ForgotPassword from "./features/auth/pages/ForgotPassword";
 import VerifyResetOTP from "./features/auth/pages/VerifyResetOTP";
 import ResetPassword from "./features/auth/pages/ResetPassword";
+
+// ==========================================================
+// AUTHENTICATION
+// ==========================================================
+import Contact from "./features/Contact/pages/Contact";
 
 function App() {
   return (
